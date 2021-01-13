@@ -1,5 +1,3 @@
-// https://www.waveshare.com/w/upload/c/c9/IT8951_USB_ProgrammingGuide_v.0.4_20161114.pdf
-
 #include <fcntl.h>
 #include <scsi/scsi.h>
 #include <scsi/sg.h>
