@@ -3,11 +3,6 @@ IT8951 USB, getestet auf Raspberry Pi Zero W
 
 Getestet mit einem Waveshare 10.3" E-Ink Display (1872×1404) / Raspberry Pi Zero.
 
-## Materialliste
-* Raspberry Pi Zero W
-* Waveshare 10.3 Zoll E-Ink Display (inkl. IT8951 HAT)
-* USB OTG Adapter (für die Verbindung zwischen Raspberry <> IT8951)
-
 ## Installation
 Ausführbares File generieren
 ```
@@ -32,6 +27,15 @@ Anziege eines vorgeladenen Bildes aus dem Speicher:
 ```
 ./it8951 -s /dev/sg0 500 500 500 500
 ```
+
+## Materialliste
+* Raspberry Pi Zero W
+* Waveshare 10.3 Zoll E-Ink Display (inkl. IT8951 HAT)
+* USB OTG Adapter (für die Verbindung zwischen Raspberry <> IT8951)
+
+## Testaufbau
+Der Aufbau besteht aus einem IT8951 gesteuerten Display und einem mittels USB (OTG USB-Adapter) verbunden Raspberry Pi Zero W. 
+<img src="./doc/aufbau.jpg"/>
 
 ## TODO
 * Register schreiben / auslesen
