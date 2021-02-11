@@ -11,8 +11,8 @@
 #include "it8951.h"
 
 IT8951_info deviceinfo;  // Display Infos
-int debug = 0;  // Debugmodus
-int fd = 0;  // Open File Descriptor
+int debug = 0;           // Debugmodus
+int fd = 0;              // Open File Descriptor
 
 /*
  * Spannung und Powerstate setzen
@@ -252,10 +252,11 @@ void printHelp(const char *appName) {
         "   -m: Waveform\n"
         "   -d: Debug\n"
         "   -l: Lade Input auf IT8951 Speicher\n"
+        "   -i: Displayinformationen ausgeben\n"
         "   -s: Zeichne Display aus IT8951 Speicher \n"
         "   x y w h: Bildposition und grösse\n"
         "   Input via Pipe, 8Bit-Graustufen Bild\n\n",
-        appName,appName);
+        appName, appName);
 }
 
 /*
@@ -266,14 +267,18 @@ int main(int argc, char *argv[]) {
     int mode = WAVEFORM_MODE_2;
     int show = 0;
     int load = 0;
+    int info = 0;
 
-    while ((opt = getopt(argc, argv, "m:dlsh")) != -1) {
+    while ((opt = getopt(argc, argv, "m:dlshi")) != -1) {
         switch (opt) {
             case 'm':
                 mode = atoi(optarg);
                 break;
             case 'd':
                 debug = 1;
+                break;
+            case 'i':
+                info = 1;
                 break;
             case 'l':
                 load = 1;
@@ -282,25 +287,33 @@ int main(int argc, char *argv[]) {
                 show = 1;
                 break;
             case 'h':
-            default:
+            default: 
                 printHelp(argv[0]);
         }
     }
 
-    if (!show && !load)
+    if (!show && !load && !info)
         return EXIT_SUCCESS;
+
+    init(argv[optind]);
 
     int x = atoi(argv[optind + 1]);
     int y = atoi(argv[optind + 2]);
     int w = atoi(argv[optind + 3]);
     int h = atoi(argv[optind + 4]);
 
-    init(argv[optind]);
-
     if (load)
         loadImage(x, y, w, h, mode);
     if (show)
         displayArea(x, y, w, h, mode);
+    if (info) {
+        printf(
+        "Displayinformationen:\n"
+        "w: %d\n"
+        "h: %d\n"
+        ,
+        deviceinfo.width, deviceinfo.height);
+    }
 
     // Display auf Standby
     pmicSet(0, 0);
