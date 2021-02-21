@@ -1,7 +1,6 @@
-# IT8951 USB Treiber (Raspberry Pi) 
-IT8951 USB, getestet auf Raspberry Pi Zero W
-
-Getestet mit einem Waveshare 10.3" E-Ink Display (1872×1404) / Raspberry Pi Zero.
+# IT8951 USB Treiber
+<img src="./doc/final.jpg"/>
+Simpler USB-Treiber für ein IT8951 Kontroller. Getestet in diesem Fall mit einem E-Ink Display (10.3", 1872×1404) via USB an einem Raspberry Pi Zero W.
 
 ## Installation
 Ausführbares File generieren
@@ -34,7 +33,8 @@ Anziege eines vorgeladenen Bildes aus dem Speicher:
 * USB OTG Adapter (für die Verbindung zwischen Raspberry <> IT8951)
 
 ## Testaufbau
-Der Aufbau besteht aus einem IT8951 gesteuerten Display und einem mittels USB (OTG USB-Adapter) verbunden Raspberry Pi Zero W. 
+Der Aufbau besteht aus einem IT8951 gesteuerten Display und einem mittels USB (OTG USB-Adapter) verbunden Raspberry Pi Zero W. Verbaut in einem Bilderrahmen, wobi die einzelnen Komponenten in der Finalen Version direkt auf der Hinterseite verklebt worden sind (siehe Bild links).
+
 <img src="./doc/aufbau.jpg"/>
 
 ## TODO
