@@ -33,7 +33,7 @@ Anziege eines vorgeladenen Bildes aus dem Speicher:
 * USB OTG Adapter (für die Verbindung zwischen Raspberry <> IT8951)
 
 ## Testaufbau
-Der Aufbau besteht aus einem IT8951 gesteuerten Display und einem mittels USB (OTG USB-Adapter) verbunden Raspberry Pi Zero W. Verbaut in einem Bilderrahmen, wobi die einzelnen Komponenten in der Finalen Version direkt auf der Hinterseite verklebt worden sind (siehe Bild links).
+Der Aufbau besteht aus einem IT8951 gesteuerten Display und einem mittels USB (OTG USB-Adapter) verbunden Raspberry Pi Zero W. Verbaut werden diese schlussendlich in einem Bilderrahmen, wobi die einzelnen Komponenten direkt auf der Hinterseite verklebt worden sind (siehe Bild links).
 
 <img src="./doc/aufbau.jpg"/>
 
