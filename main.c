@@ -163,7 +163,7 @@ void loadImage(int x, int y, int w, int h, int mode) {
             perror("Inputstream Error");
             exit(EXIT_FAILURE);
         } else if (current == 0) {
-            fprintf(stderr, "Inputstream leer\n");
+            fprintf(stderr, "Angegebene Bildgrösse passt nicht zum Inputstream\n");
             exit(EXIT_FAILURE);
         } else {
             left -= current;
@@ -171,19 +171,30 @@ void loadImage(int x, int y, int w, int h, int mode) {
         }
     }
 
+    // Bildüberstand berechnen
+    if (deviceinfo.width < x + w){
+        perror("Bildüberstand (breite)");
+        exit(EXIT_FAILURE);
+    }
+
+    if (deviceinfo.height < y + h){
+        perror("Bildüberstand (höhe)");
+        exit(EXIT_FAILURE);
+    }
+
     // Gemäss Doku ist die Maximalgröse pro Paket 60KByte. Der Input muss entsprechend geteilt werden
-    int offset = 0;
+    int offsetLines = 0;
     int lines = 60000 / w;
 
-    while (offset < size) {
-        if (offset / w + lines > h)
-            lines = h - offset / w;
+    while (offsetLines < h) {
+        if (offsetLines + lines > h)
+            lines = h - offsetLines;
 
         if (debug)
-            printf("Sende Teilbild: x%d,y%d,w%d,h%d\n", x, y + (offset / w), w, lines);
+            printf("Sende Teilbild: x%d,y%d,w%d,h%d\n", x, y + offsetLines, w, lines);
 
-        loadImageArea(x, y + (offset / w), w, lines, &buffer[offset]);
-        offset += lines * w;
+        loadImageArea(x, y + offsetLines, w, lines, &buffer[offsetLines * w]);
+        offsetLines += lines;
     }
 }
 
@@ -198,8 +209,6 @@ void init(const char *inputname) {
         exit(EXIT_FAILURE);
     }
 
-    IT8951_info *dev;
-    dev = calloc(1, sizeof(*dev));
     sg_io_hdr_t ioHdr;
     memset(&ioHdr, 0, sizeof(sg_io_hdr_t));
 
@@ -222,15 +231,14 @@ void init(const char *inputname) {
     ioHdr.cmd_len = sizeof(cmd);
     ioHdr.cmdp = cmd;
     ioHdr.dxfer_direction = SG_DXFER_FROM_DEV;
-    ioHdr.dxfer_len = sizeof(*dev);
-    ioHdr.dxferp = dev;
+    ioHdr.dxfer_len = sizeof(deviceinfo);
+    ioHdr.dxferp = &deviceinfo;
 
     if (ioctl(fd, SG_IO, &ioHdr) < 0) {
         perror("SG_IO Geräteinfo fehlerhaft");
         exit(EXIT_FAILURE);
     }
 
-    deviceinfo = *dev;
     deviceinfo.width = be32toh(deviceinfo.width);
     deviceinfo.height = be32toh(deviceinfo.height);
 
@@ -287,7 +295,7 @@ int main(int argc, char *argv[]) {
                 show = 1;
                 break;
             case 'h':
-            default: 
+            default:
                 printHelp(argv[0]);
         }
     }
@@ -297,10 +305,10 @@ int main(int argc, char *argv[]) {
 
     init(argv[optind]);
 
-    int x = atoi(argv[optind + 1]);
-    int y = atoi(argv[optind + 2]);
-    int w = atoi(argv[optind + 3]);
-    int h = atoi(argv[optind + 4]);
+    signed int x = atoi(argv[optind + 1]);
+    signed int y = atoi(argv[optind + 2]);
+    signed int w = atoi(argv[optind + 3]);
+    signed int h = atoi(argv[optind + 4]);
 
     if (load)
         loadImage(x, y, w, h, mode);
@@ -308,11 +316,10 @@ int main(int argc, char *argv[]) {
         displayArea(x, y, w, h, mode);
     if (info) {
         printf(
-        "Displayinformationen:\n"
-        "w: %d\n"
-        "h: %d\n"
-        ,
-        deviceinfo.width, deviceinfo.height);
+            "Displayinformationen:\n"
+            "w: %d\n"
+            "h: %d\n",
+            deviceinfo.width, deviceinfo.height);
     }
 
     // Display auf Standby
