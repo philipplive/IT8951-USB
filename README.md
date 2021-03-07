@@ -22,7 +22,7 @@ Ein Bild kann auch in den Speicher des IT8951 vorgeladen werden, ohne anzeigen a
 convert -size 500x500 gradient:"#000000-#ffffff" -extent 500x500 -depth 8 gray:- | ./it8951 -l /dev/sg0 500 500 500 500
 ```
 
-Anziege eines vorgeladenen Bildes aus dem Speicher:
+Anzeige eines vorgeladenen Bildes aus dem Speicher:
 ```
 ./it8951 -s /dev/sg0 500 500 500 500
 ```

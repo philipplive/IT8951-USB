@@ -151,13 +151,15 @@ int loadImageArea(int x, int y, int w, int h, unsigned char *data) {
  */
 void loadImage(int x, int y, int w, int h, int mode) {
     int size = w * h;
-    unsigned char *buffer = (unsigned char *)malloc(size);
-    unsigned char *bufferPointer = buffer;
-    size_t left = size;
+    unsigned char *inputBuffer = (unsigned char *)malloc(size);
+    unsigned char *inputBufferPointer = inputBuffer;
+    unsigned char *outputBuffer = (unsigned char *)malloc(size);
 
     // Pipeinput lesen
+    int left = size;
+
     while (left > 0) {
-        size_t current = read(STDIN_FILENO, bufferPointer, left);
+        int current = read(STDIN_FILENO, inputBufferPointer, left);
 
         if (current < 0) {
             perror("Inputstream Error");
@@ -167,19 +169,18 @@ void loadImage(int x, int y, int w, int h, int mode) {
             exit(EXIT_FAILURE);
         } else {
             left -= current;
-            bufferPointer += current;
+            inputBufferPointer += current;
         }
     }
 
-    // Bildüberstand berechnen
-    if (deviceinfo.width < x + w){
-        perror("Bildüberstand (breite)");
-        exit(EXIT_FAILURE);
-    }
+    // Bild transformieren (Bildstartpunkt des Streams korrigieren - von unten links nach oben links)
+    inputBufferPointer = inputBuffer;
 
-    if (deviceinfo.height < y + h){
-        perror("Bildüberstand (höhe)");
-        exit(EXIT_FAILURE);
+    for (int line = h; line != 0; --line) {
+        for (int pixel = w; pixel != 0; --pixel) {
+            outputBuffer[line * w - pixel] = *inputBufferPointer;
+            inputBufferPointer++;
+        }
     }
 
     // Gemäss Doku ist die Maximalgröse pro Paket 60KByte. Der Input muss entsprechend geteilt werden
@@ -193,7 +194,7 @@ void loadImage(int x, int y, int w, int h, int mode) {
         if (debug)
             printf("Sende Teilbild: x%d,y%d,w%d,h%d\n", x, y + offsetLines, w, lines);
 
-        loadImageArea(x, y + offsetLines, w, lines, &buffer[offsetLines * w]);
+        loadImageArea(x, y + offsetLines, w, lines, &outputBuffer[offsetLines * w]);
         offsetLines += lines;
     }
 }
@@ -305,11 +306,26 @@ int main(int argc, char *argv[]) {
 
     init(argv[optind]);
 
-    signed int x = atoi(argv[optind + 1]);
-    signed int y = atoi(argv[optind + 2]);
-    signed int w = atoi(argv[optind + 3]);
-    signed int h = atoi(argv[optind + 4]);
+    int x = atoi(argv[optind + 1]);
+    int y = atoi(argv[optind + 2]);
+    int w = atoi(argv[optind + 3]);
+    int h = atoi(argv[optind + 4]);
 
+    // Bildüberstand berechnen
+    if (deviceinfo.width < x + w) {
+        perror("Bildüberstand (breite)");
+        exit(EXIT_FAILURE);
+    }
+
+    if (deviceinfo.height < y + h) {
+        perror("Bildüberstand (höhe)");
+        exit(EXIT_FAILURE);
+    }
+    
+    // Y Achse korrigieren
+    y = deviceinfo.height - y - h;
+
+    // Befehl ausführen
     if (load)
         loadImage(x, y, w, h, mode);
     if (show)
