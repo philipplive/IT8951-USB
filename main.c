@@ -13,6 +13,7 @@
 IT8951_info deviceinfo;  // Display Infos
 int debug = 0;           // Debugmodus
 int fd = 0;              // Open File Descriptor
+int rotate = 0;          // Bildschirm im rotationsmodus betreiben, in ° (90er Schritte)
 
 /*
  * Spannung und Powerstate setzen
@@ -149,7 +150,27 @@ int loadImageArea(int x, int y, int w, int h, unsigned char *data) {
 /*
  * Bilddaten übertragen
  */
-void loadImage(int x, int y, int w, int h, int mode) {
+void loadImage(unsigned char *buffer, int x, int y, int w, int h, int mode) {
+    // Gemäss Doku ist die Maximalgröse pro Paket 60KByte. Der Input muss entsprechend geteilt werden
+    int offsetLines = 0;
+    int lines = 60000 / w;
+
+    while (offsetLines < h) {
+        if (offsetLines + lines > h)
+            lines = h - offsetLines;
+
+        if (debug)
+            printf("Sende Teilbild: x%d,y%d,w%d,h%d\n", x, y + offsetLines, w, lines);
+
+        loadImageArea(x, y + offsetLines, w, lines, &buffer[offsetLines * w]);
+        offsetLines += lines;
+    }
+}
+
+/*
+ * Bilddaten aus Pipe lesen und transformieren
+ */
+unsigned char *readImageStream(int w, int h) {
     int size = w * h;
     unsigned char *inputBuffer = (unsigned char *)malloc(size);
     unsigned char *inputBufferPointer = inputBuffer;
@@ -176,27 +197,28 @@ void loadImage(int x, int y, int w, int h, int mode) {
     // Bild transformieren (Bildstartpunkt des Streams korrigieren - von unten links nach oben links)
     inputBufferPointer = inputBuffer;
 
-    for (int line = h; line != 0; --line) {
-        for (int pixel = w; pixel != 0; --pixel) {
-            outputBuffer[line * w - pixel] = *inputBufferPointer;
-            inputBufferPointer++;
+    if (rotate == 0) {
+        for (int line = h; line != 0; --line) {
+            for (int pixel = w; pixel != 0; --pixel) {
+                outputBuffer[line * w - pixel] = *inputBufferPointer;
+                inputBufferPointer++;
+            }
+        }
+    } else if (rotate == 90) {
+        if (w != h) {
+            perror("Nur Quadratische Bilder können gedreht werden");
+            exit(EXIT_FAILURE);
+        }
+
+        for (int pixel = 0; pixel != w; ++pixel) {
+            for (int line = h; line != 0; --line) {
+                outputBuffer[line * w - pixel] = *inputBufferPointer;
+                inputBufferPointer++;
+            }
         }
     }
 
-    // Gemäss Doku ist die Maximalgröse pro Paket 60KByte. Der Input muss entsprechend geteilt werden
-    int offsetLines = 0;
-    int lines = 60000 / w;
-
-    while (offsetLines < h) {
-        if (offsetLines + lines > h)
-            lines = h - offsetLines;
-
-        if (debug)
-            printf("Sende Teilbild: x%d,y%d,w%d,h%d\n", x, y + offsetLines, w, lines);
-
-        loadImageArea(x, y + offsetLines, w, lines, &outputBuffer[offsetLines * w]);
-        offsetLines += lines;
-    }
+    return outputBuffer;
 }
 
 /*
@@ -253,13 +275,14 @@ void init(const char *inputname) {
 void printHelp(const char *appName) {
     printf(
         "\n"
-        "%s [-m waveform][-d][-l][-s][-h] device x y w h\n\n"
+        "%s [-m waveform][-d][-l][-s][-h][-r] device x y w h\n\n"
         "Beispiel: \n"
         "cat data.raw | %s -m 2 -l -s /dev/sg0 0 0 50 50\n\n"
         "Optionen:\n"
         "   device: Pfad zum USB-Gerät z.B. /dev/sg0\n"
         "   -m: Waveform\n"
         "   -d: Debug\n"
+        "   -r: Devicerotation (0, 90)\n"
         "   -l: Lade Input auf IT8951 Speicher\n"
         "   -i: Displayinformationen ausgeben\n"
         "   -s: Zeichne Display aus IT8951 Speicher \n"
@@ -278,7 +301,7 @@ int main(int argc, char *argv[]) {
     int load = 0;
     int info = 0;
 
-    while ((opt = getopt(argc, argv, "m:dlshi")) != -1) {
+    while ((opt = getopt(argc, argv, "m:dlshir:")) != -1) {
         switch (opt) {
             case 'm':
                 mode = atoi(optarg);
@@ -295,9 +318,14 @@ int main(int argc, char *argv[]) {
             case 's':
                 show = 1;
                 break;
+            case 'r':
+                rotate = atoi(optarg);
+                break;
             case 'h':
-            default:
+            default:{
                 printHelp(argv[0]);
+                return EXIT_SUCCESS;
+            }
         }
     }
 
@@ -321,13 +349,13 @@ int main(int argc, char *argv[]) {
         perror("Bildüberstand (höhe)");
         exit(EXIT_FAILURE);
     }
-    
+
     // Y Achse korrigieren
     y = deviceinfo.height - y - h;
 
     // Befehl ausführen
     if (load)
-        loadImage(x, y, w, h, mode);
+        loadImage(readImageStream(w, h), x, y, w, h, mode);
     if (show)
         displayArea(x, y, w, h, mode);
     if (info) {
