@@ -311,7 +311,7 @@ int main(int argc, char *argv[]) {
     int w = atoi(argv[optind + 3]);
     int h = atoi(argv[optind + 4]);
 
-    // Bildüberstand berechnen
+    // Bildpassung prüfen
     if (deviceinfo.width < x + w) {
         perror("Bildüberstand (breite)");
         exit(EXIT_FAILURE);
