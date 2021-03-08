@@ -16,7 +16,79 @@ int fd = 0;              // Open File Descriptor
 int rotate = 0;          // Bildschirm im rotationsmodus betreiben, in ° (90er Schritte)
 
 /*
- * Spannung und Powerstate setzen
+ * Init und Display-Infos laden
+ */
+void init(const char *inputname) {
+    fd = open(inputname, O_RDWR | O_NONBLOCK);
+
+    if (fd < 0) {
+        perror("SCSI Gerät konnte nicht geöffnet werden");
+        exit(EXIT_FAILURE);
+    }
+
+    sg_io_hdr_t ioHdr;
+    memset(&ioHdr, 0, sizeof(sg_io_hdr_t));
+
+    unsigned char cmd[11] = {
+        IT8951_CMD_CUSTOMER,
+        0x00,
+        0x38,
+        0x39,
+        0x35,
+        0x31,
+        IT8951_CMD_GET_SYS,
+        0x00,
+        0x01,
+        0x00,
+        0x02};
+
+    unsigned char deviceinfoResult[112];
+
+    ioHdr.interface_id = 'S';
+    ioHdr.cmd_len = sizeof(cmd);
+    ioHdr.cmdp = cmd;
+    ioHdr.dxfer_direction = SG_DXFER_FROM_DEV;
+    ioHdr.dxfer_len = sizeof(deviceinfo);
+    ioHdr.dxferp = &deviceinfo;
+
+    if (ioctl(fd, SG_IO, &ioHdr) < 0) {
+        perror("SG_IO Geräteinfo fehlerhaft");
+        exit(EXIT_FAILURE);
+    }
+
+    deviceinfo.width = be32toh(deviceinfo.width);
+    deviceinfo.height = be32toh(deviceinfo.height);
+
+    if (debug)
+        printf("Display gefunden, %dx%d\n", deviceinfo.width, deviceinfo.height);
+}
+
+/*
+ * Hilfe
+ */
+void printHelp(const char *appName) {
+    printf(
+        "\n"
+        "%s [-m waveform][-d][-l][-s][-h][-r] device x y w h\n\n"
+        "Beispiele: \n"
+        "# cat data.raw | %s -m 2 -l -s /dev/sg0 0 0 50 50\n"
+        "# %s -m 2 -f 255 -s /dev/sg0 0 0 50 50\n\n"
+        "Optionen:\n"
+        "   Device: Pfad zum USB-Gerät z.B. /dev/sg0\n"
+        "   -m: Waveform\n"
+        "   -d: Debug\n"
+        "   -r: Devicerotation (0, 90°)\n"
+        "   -f: Fill: gewählte Bildfläche im Speicher mit Farbe 0-255 füllen \n"
+        "   -l: Lade Input auf IT8951 Speicher\n"
+        "   -i: Displayinformationen ausgeben\n"
+        "   -s: IT8951 Speicher zeichnen \n"
+        "   x y w h: Bildposition und grösse\n"
+        "   Input via Pipe, 8Bit-Graustufen Bild\n\n",
+        appName, appName);
+}
+
+/*
+ * Spannung und Powerstate des IT8951 setzen
  */
 int pmicSet(int pwr, int vcom) {
     unsigned char cmd[16] = {
@@ -27,11 +99,11 @@ int pmicSet(int pwr, int vcom) {
         0x00,
         0x00,
         IT8951_CMD_PMIC_CTRL,
-        0x00, /* Vcom value [15:8] */
-        0x00, /* Vcom value [7:0] */
-        0x00, /* Set Vcom 0=no 1=yes */
-        0x01, /* Set power 0=no 1=yes */
-        pwr   /* Power value 0=off 1=on */
+        0x00, 
+        0x00, 
+        0x00, 
+        0x01, 
+        pwr   
     };
 
     if (vcom) {
@@ -58,7 +130,7 @@ int pmicSet(int pwr, int vcom) {
 }
 
 /*
- * Übertragene Bilddaten anzeigen
+ * Bilddaten in IT8951 Speicher zeichnen
  */
 int displayArea(int x, int y, int w, int h, int mode) {
     unsigned char cmd[16] = {
@@ -150,7 +222,7 @@ int loadImageArea(int x, int y, int w, int h, unsigned char *data) {
 /*
  * Bilddaten übertragen
  */
-void loadImage(unsigned char *buffer, int x, int y, int w, int h, int mode) {
+void loadImage(unsigned char *buffer, int x, int y, int w, int h) {
     // Gemäss Doku ist die Maximalgröse pro Paket 60KByte. Der Input muss entsprechend geteilt werden
     int offsetLines = 0;
     int lines = 60000 / w;
@@ -194,7 +266,7 @@ unsigned char *readImageStream(int w, int h) {
         }
     }
 
-    // Bild transformieren (Bildstartpunkt des Streams korrigieren - von unten links nach oben links)
+    // Bild transformieren (Bytereihenfolge ändern)
     inputBufferPointer = inputBuffer;
 
     if (rotate == 0) {
@@ -205,11 +277,6 @@ unsigned char *readImageStream(int w, int h) {
             }
         }
     } else if (rotate == 90) {
-        if (w != h) {
-            perror("Nur Quadratische Bilder können gedreht werden");
-            exit(EXIT_FAILURE);
-        }
-
         for (int pixel = 0; pixel != w; ++pixel) {
             for (int line = h; line != 0; --line) {
                 outputBuffer[line * w - pixel] = *inputBufferPointer;
@@ -222,73 +289,12 @@ unsigned char *readImageStream(int w, int h) {
 }
 
 /*
- * Init und Display-Infos laden
+ * Einfarbige Bildfläche generieren
  */
-void init(const char *inputname) {
-    fd = open(inputname, O_RDWR | O_NONBLOCK);
-
-    if (fd < 0) {
-        perror("SCSI Gerät konnte nicht geöffnet werden");
-        exit(EXIT_FAILURE);
-    }
-
-    sg_io_hdr_t ioHdr;
-    memset(&ioHdr, 0, sizeof(sg_io_hdr_t));
-
-    unsigned char cmd[11] = {
-        IT8951_CMD_CUSTOMER,
-        0x00,
-        0x38,
-        0x39,
-        0x35,
-        0x31,
-        IT8951_CMD_GET_SYS,
-        0x00,
-        0x01,
-        0x00,
-        0x02};
-
-    unsigned char deviceinfoResult[112];
-
-    ioHdr.interface_id = 'S';
-    ioHdr.cmd_len = sizeof(cmd);
-    ioHdr.cmdp = cmd;
-    ioHdr.dxfer_direction = SG_DXFER_FROM_DEV;
-    ioHdr.dxfer_len = sizeof(deviceinfo);
-    ioHdr.dxferp = &deviceinfo;
-
-    if (ioctl(fd, SG_IO, &ioHdr) < 0) {
-        perror("SG_IO Geräteinfo fehlerhaft");
-        exit(EXIT_FAILURE);
-    }
-
-    deviceinfo.width = be32toh(deviceinfo.width);
-    deviceinfo.height = be32toh(deviceinfo.height);
-
-    if (debug)
-        printf("Display gefunden, %dx%d\n", deviceinfo.width, deviceinfo.height);
-}
-
-/*
- * Hilfe
- */
-void printHelp(const char *appName) {
-    printf(
-        "\n"
-        "%s [-m waveform][-d][-l][-s][-h][-r] device x y w h\n\n"
-        "Beispiel: \n"
-        "cat data.raw | %s -m 2 -l -s /dev/sg0 0 0 50 50\n\n"
-        "Optionen:\n"
-        "   device: Pfad zum USB-Gerät z.B. /dev/sg0\n"
-        "   -m: Waveform\n"
-        "   -d: Debug\n"
-        "   -r: Devicerotation (0, 90)\n"
-        "   -l: Lade Input auf IT8951 Speicher\n"
-        "   -i: Displayinformationen ausgeben\n"
-        "   -s: Zeichne Display aus IT8951 Speicher \n"
-        "   x y w h: Bildposition und grösse\n"
-        "   Input via Pipe, 8Bit-Graustufen Bild\n\n",
-        appName, appName);
+unsigned char *emptyImage(int w, int h, int fillColor) {
+    unsigned char *buffer = (unsigned char *)malloc(w * h);
+    memset(buffer, fillColor, w * h);
+    return buffer;
 }
 
 /*
@@ -300,8 +306,9 @@ int main(int argc, char *argv[]) {
     int show = 0;
     int load = 0;
     int info = 0;
+    int fill = 265;
 
-    while ((opt = getopt(argc, argv, "m:dlshir:")) != -1) {
+    while ((opt = getopt(argc, argv, "m:dlshir:f:")) != -1) {
         switch (opt) {
             case 'm':
                 mode = atoi(optarg);
@@ -315,6 +322,9 @@ int main(int argc, char *argv[]) {
             case 'l':
                 load = 1;
                 break;
+            case 'f':
+                fill = atoi(optarg);
+                break;
             case 's':
                 show = 1;
                 break;
@@ -322,14 +332,14 @@ int main(int argc, char *argv[]) {
                 rotate = atoi(optarg);
                 break;
             case 'h':
-            default:{
+            default: {
                 printHelp(argv[0]);
                 return EXIT_SUCCESS;
             }
         }
     }
 
-    if (!show && !load && !info)
+    if (!show && !load && !info && fill > 255)
         return EXIT_SUCCESS;
 
     init(argv[optind]);
@@ -338,6 +348,19 @@ int main(int argc, char *argv[]) {
     int y = atoi(argv[optind + 2]);
     int w = atoi(argv[optind + 3]);
     int h = atoi(argv[optind + 4]);
+
+    // Koordinaten korrigieren
+    if (rotate == 0) {
+        y = deviceinfo.height - y - h;
+    } else if (rotate == 90) {
+        int temp = h;
+        h = w;
+        w = temp;
+
+        temp = x;
+        x = deviceinfo.width - y - w;
+        y = deviceinfo.height - temp - h;
+    }
 
     // Bildpassung prüfen
     if (deviceinfo.width < x + w) {
@@ -350,12 +373,11 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    // Y Achse korrigieren
-    y = deviceinfo.height - y - h;
-
     // Befehl ausführen
     if (load)
-        loadImage(readImageStream(w, h), x, y, w, h, mode);
+        loadImage(readImageStream(w, h), x, y, w, h);
+    if (fill < 256)
+        loadImage(emptyImage(w, h, fill), x, y, w, h);
     if (show)
         displayArea(x, y, w, h, mode);
     if (info) {

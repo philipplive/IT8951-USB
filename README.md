@@ -7,24 +7,45 @@ Ausführbares File generieren
 ```
 gcc -o it8951 main.c
 ```
-## Ausführen
 
+## Parameter
+Optionen:
+*   Device: Pfad zum USB-Gerät z.B. /dev/sg0
+*   -m: Mode: Waveform. Default = 2
+*   -d: Debug
+*   -r: Devicerotation (0, 90°). Default = 0
+*   -f: Fill: gewählte Bildfläche im Speicher mit Farbe 0-255 füllen
+*   -l: Lade Input auf IT8951 Speicher
+*   -i: Displayinformationen ausgeben
+*   -s: IT8951 Speicher zeichnen
+*   x y w h: Bildposition und grösse
+*   Input via Pipe, 8Bit-Graustufen Bild
+
+
+## Beispiele
 Hilfe / Argumentübersicht
 ```
 ./it8951 -h
 ```
+
+Farbfläche in den Speicher des IT8951 übertragen (Farbe 255 -> Weiss, Startpunkte x0,y0, Breite und Höhe 50px):
+```
+./it8951 -f 255 -s /dev/sg0 0 0 50 50
+```
+
+Anzeige eines Teilbildes aus dem Speicher (25x25px) auf dem Display. ( mit dem Waveform Mode 2)
+```
+./it8951 -s -m 2  /dev/sg0 0 0 25 25
+```
+
 Beispiel mit einem durch "ImageMagick" generierten Bild:
 ```
 convert -background black -fill white -font Arial -pointsize 80 label:"123" -flip -gravity Center -extent 600x600 -depth 8 gray:- | ./it8951 -l -s -m 2 /dev/sg0 0 0 600 600
 ```
-Ein Bild kann auch in den Speicher des IT8951 vorgeladen werden, ohne anzeigen auf dem Display:
-```
-convert -size 500x500 gradient:"#000000-#ffffff" -extent 500x500 -depth 8 gray:- | ./it8951 -l /dev/sg0 500 500 500 500
-```
 
-Anzeige eines vorgeladenen Bildes aus dem Speicher:
+Ein .jpg anzeigen (via "ImageMagick")
 ```
-./it8951 -s /dev/sg0 500 500 500 500
+convert test.jpg -resize 1872x1404\! -depth 8 gray:- | ./it8951  -m 2 -l -s /dev/sg0 0 0 1872 1404
 ```
 
 ## Materialliste
