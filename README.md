@@ -12,6 +12,7 @@ gcc -o it8951 main.c
 Optionen:
 *   Device: Pfad zum USB-Gerät z.B. /dev/sg0
 *   -m: Mode: Waveform. Default = 2
+*   -p: Pfad zu Datei
 *   -d: Debug
 *   -r: Devicerotation (0, 90°). Default = 0
 *   -f: Fill: gewählte Bildfläche im Speicher mit Farbe 0-255 füllen
@@ -46,6 +47,11 @@ convert -background black -fill white -font Arial -pointsize 80 label:"123" -fli
 Ein .jpg anzeigen (via "ImageMagick")
 ```
 convert test.jpg -resize 1872x1404\! -depth 8 gray:- | ./it8951  -m 2 -l -s /dev/sg0 0 0 1872 1404
+```
+
+Ein bereits konvertiertes Bild direkt laden und anzeigen
+```
+./it8951  -m 2 -l -s -p /root/test.raw /dev/sg0 0 0 1872 1404
 ```
 
 ## Materialliste

@@ -69,14 +69,16 @@ void init(const char *inputname) {
 void printHelp(const char *appName) {
     printf(
         "\n"
-        "%s [-m waveform][-d][-l][-s][-h][-r] device x y w h\n\n"
+        "%s [-m waveform][-d][-l][-s][-h][-r][-p] device x y w h\n\n"
         "Beispiele: \n"
         "# cat data.raw | %s -m 2 -l -s /dev/sg0 0 0 50 50\n"
+        "# %s -m 2 -l -s -p /root/test.raw /dev/sg0 0 0 50 50\n"
         "# %s -m 2 -f 255 -s /dev/sg0 0 0 50 50\n\n"
         "Optionen:\n"
         "   Device: Pfad zum USB-Gerät z.B. /dev/sg0\n"
         "   -m: Waveform\n"
         "   -d: Debug\n"
+        "   -p: Pfad zu Datei\n"
         "   -r: Devicerotation (0, 90°)\n"
         "   -f: Fill: gewählte Bildfläche im Speicher mit Farbe 0-255 füllen \n"
         "   -l: Lade Input auf IT8951 Speicher\n"
@@ -99,12 +101,11 @@ int pmicSet(int pwr, int vcom) {
         0x00,
         0x00,
         IT8951_CMD_PMIC_CTRL,
-        0x00, 
-        0x00, 
-        0x00, 
-        0x01, 
-        pwr   
-    };
+        0x00,
+        0x00,
+        0x00,
+        0x01,
+        pwr};
 
     if (vcom) {
         cmd[7] = (vcom >> 8);
@@ -240,13 +241,11 @@ void loadImage(unsigned char *buffer, int x, int y, int w, int h) {
 }
 
 /*
- * Bilddaten aus Pipe lesen und transformieren
+ * Bilddaten aus Pipe lesen
  */
-unsigned char *readImageStream(int w, int h) {
-    int size = w * h;
+unsigned char *readImageStream(int size) {
     unsigned char *inputBuffer = (unsigned char *)malloc(size);
     unsigned char *inputBufferPointer = inputBuffer;
-    unsigned char *outputBuffer = (unsigned char *)malloc(size);
 
     // Pipeinput lesen
     int left = size;
@@ -266,21 +265,62 @@ unsigned char *readImageStream(int w, int h) {
         }
     }
 
-    // Bild transformieren (Bytereihenfolge ändern)
-    inputBufferPointer = inputBuffer;
+    return inputBuffer;
+}
+
+/**
+ * Bilddaten aus Datei lesen
+ */
+unsigned char *readFile(char *filename) {
+    int size = 0;
+    FILE *file = fopen(filename, "r");
+
+    if (!file) {
+        fputs("File error.\n", stderr);
+        return NULL;
+    }
+
+    fseek(file, 0, SEEK_END);
+    size = ftell(file);
+    rewind(file);
+
+    char *stream = (char *)malloc(size);
+
+    if (!stream) {
+        fclose(file);
+        perror("Speicherfehler");
+        exit(EXIT_FAILURE);
+    }
+
+    if (fread(stream, 1, size, file) != size) {
+        fclose(file);
+        perror("Lesefehler");
+        exit(EXIT_FAILURE);
+    }
+
+    fclose(file);
+    return stream;
+}
+
+/**
+ * Bild transformieren (Bytereihenfolge ändern und rotieren)
+ */
+unsigned char *transformImage(unsigned char *buffer, int w, int h) {
+    unsigned char *outputBuffer = (unsigned char *)malloc(w * h);
+    unsigned char *bufferPointer = buffer;
 
     if (rotate == 0) {
         for (int line = h; line != 0; --line) {
             for (int pixel = w; pixel != 0; --pixel) {
-                outputBuffer[line * w - pixel] = *inputBufferPointer;
-                inputBufferPointer++;
+                outputBuffer[line * w - pixel] = *bufferPointer;
+                bufferPointer++;
             }
         }
     } else if (rotate == 90) {
         for (int pixel = 0; pixel != w; ++pixel) {
             for (int line = h; line != 0; --line) {
-                outputBuffer[line * w - pixel] = *inputBufferPointer;
-                inputBufferPointer++;
+                outputBuffer[line * w - pixel] = *bufferPointer;
+                bufferPointer++;
             }
         }
     }
@@ -307,8 +347,10 @@ int main(int argc, char *argv[]) {
     int load = 0;
     int info = 0;
     int fill = 265;
+    int path = 0;
+    char *pathValue;
 
-    while ((opt = getopt(argc, argv, "m:dlshir:f:")) != -1) {
+    while ((opt = getopt(argc, argv, "m:dlshir:f:p:")) != -1) {
         switch (opt) {
             case 'm':
                 mode = atoi(optarg);
@@ -327,6 +369,11 @@ int main(int argc, char *argv[]) {
                 break;
             case 's':
                 show = 1;
+                break;
+            case 'p':
+                 printf("Given File: %s\n", optarg);
+                path = 1;
+                pathValue = optarg;
                 break;
             case 'r':
                 rotate = atoi(optarg);
@@ -374,8 +421,19 @@ int main(int argc, char *argv[]) {
     }
 
     // Befehl ausführen
-    if (load)
-        loadImage(readImageStream(w, h), x, y, w, h);
+    if (load) {
+        unsigned char *streamPointer;
+
+        if (path) {
+            printf("Given File: %s\n", pathValue);
+            streamPointer = readFile(pathValue);
+        } else {
+            streamPointer = readImageStream(w * h);
+        }
+
+        streamPointer = transformImage(streamPointer, w, h);
+        loadImage(streamPointer, x, y, w, h);
+    }
     if (fill < 256)
         loadImage(emptyImage(w, h, fill), x, y, w, h);
     if (show)
