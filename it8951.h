@@ -45,7 +45,10 @@ typedef struct {
 #define IT8951_CMD_LOAD_IMG_AREA 0xa2
 #define IT8951_CMD_PMIC_CTRL 0xa3
 
-#define WAVEFORM_MODE_0 0
-#define WAVEFORM_MODE_1 1
-#define WAVEFORM_MODE_2 2
-#define WAVEFORM_MODE_6 2
+#define WAVEFORM_MODE_0 0 // INIT:	Auf Weiss zurücksetzen / Clear
+#define WAVEFORM_MODE_1 1 // DU: 	None-Flash, aber nur für Wechsel von Grau auf Weiss/Schwarz!
+#define WAVEFORM_MODE_2 2 // GC16:	Optimal für Bilder (450ms)
+#define WAVEFORM_MODE_3 3 // GL16:		
+#define WAVEFORM_MODE_4 4 // GLR16:
+#define WAVEFORM_MODE_5 5 // GLD16:	
+#define WAVEFORM_MODE_6 6 // A2:	Nur S/W, None-Flash, sehr schnell (120ms)

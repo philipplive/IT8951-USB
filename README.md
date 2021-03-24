@@ -70,6 +70,7 @@ Der Aufbau besteht aus einem IT8951 gesteuerten Display und einem mittels USB (O
 
 ## Dokumente
 * Herstellerdokumentation  [> Link](https://www.waveshare.com/w/upload/c/c9/IT8951_USB_ProgrammingGuide_v.0.4_20161114.pdf)
+* Herstellerdokumentation Waveforms [> Link](https://www.waveshare.net/w/upload/c/c4/E-paper-mode-declaration.pdf)
 * Implementierung von Seagate (funktionierte bei mir jedoch nicht)  [> Link](https://github.com/Seagate/it8951/)
 
 
