@@ -5,7 +5,7 @@ Simpler USB-Treiber für ein IT8951 Kontroller. Getestet in diesem Fall mit eine
 ## Installation
 Ausführbares File generieren
 ```
-gcc -o it8951 main.c
+gcc main.c it8951.c -o it8951
 ```
 
 ## Parameter
