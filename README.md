@@ -19,11 +19,14 @@ Optionen:
 *   -l: Lade Input auf IT8951 Speicher
 *   -i: Displayinformationen ausgeben
 *   -s: IT8951 Speicher zeichnen
-*   x y w h: Bildposition und grösse
+*   x y w h: Bildposition und Frösse
 *   Input via Pipe, 8Bit-Graustufen Bild
 
 
 ## Beispiele
+**Wichtig:** Das Programm muss als **root** ausgeführt werden!
+
+
 Hilfe / Argumentübersicht
 ```
 ./it8951 -h
