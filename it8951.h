@@ -4,7 +4,7 @@
 typedef struct {
     uint32_t stdCmdNum;
     uint32_t extCmdNum;
-    uint32_t signature;
+    uint32_t signature;  // 31 35 39 38h (8951)
     uint32_t version;
     uint32_t width;
     uint32_t height;
@@ -58,11 +58,13 @@ typedef struct {
 #define WAVEFORM_MODE_7 7 // DU4:	
 
 void it8951Init(const char *inputname);
-int it8951PmicSet(int pwr, int vcom);
-int it8951DisplayArea(int x, int y, int w, int h, int mode);
-int it8951LoadImageArea(int x, int y, int w, int h, u_int8_t *data);
-u_int8_t *it8951TransformImage(u_int8_t *buffer, int w, int h,int rotate);
-void it8951LoadImage(u_int8_t *buffer, int x, int y, int w, int h);
+void it8951PmicSet(int pwr, int vcom);
+void it8951WriteMemory(uint32_t address, uint8_t *data, int size);
+void it8951DisplayArea(int x, int y, int w, int h, int mode);
+void it8951LoadImageArea(int x, int y, int w, int h, uint8_t *data);
+uint8_t *it8951TransformImage(uint8_t *buffer, int w, int h,int rotate);
+void it8951LoadImage(uint8_t *buffer, int x, int y, int w, int h);
+
 uint32_t it8951GetWidth();
 uint32_t it8951GetHeight();
 
