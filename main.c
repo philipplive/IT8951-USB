@@ -26,7 +26,7 @@ void printHelp(const char *appName) {
         "   -f: Fill: gewählte Bildfläche im Speicher mit Farbe 0-255 füllen \n"
         "   -l: Lade Input auf IT8951 Speicher\n"
         "   -i: Displayinformationen ausgeben\n"
-        "   -s: IT8951 Speicher zeichnen \n"
+        "   -s: IT8951 Speicherinhalt auf Display zeichnen \n"
         "   x y w h: Bildposition und grösse\n"
         "   Input via Pipe, 8Bit-Graustufen Bild\n\n",
         appName, appName);

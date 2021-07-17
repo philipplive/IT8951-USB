@@ -218,7 +218,7 @@ void it8951WriteMemory(uint32_t address, uint8_t *data, int size) {
     ioHdr.dxferp = data;
 
     if (ioctl(fd, SG_IO, &ioHdr) < 0) {
-        perror("SG_IO Bildladefehler");
+        perror("SG_IO Schreibfehler");
         exit(EXIT_FAILURE);
     }
 
@@ -230,13 +230,16 @@ void it8951WriteMemory(uint32_t address, uint8_t *data, int size) {
  */
 void it8951LoadImage(uint8_t *buffer, int x, int y, int w, int h) {
     // Gemäss Doku ist die Maximalgröse pro Paket beschränkt. Der Stream muss entsprechend aufgeteilt werden
-    int lines = 30000 / w;  // Zu übertragende Zeilenanzahl pro Block
+    int lines = 60000 / w;  // Zu übertragende Zeilenanzahl pro Block
     int offsetLines = 0;    // Bereits übertragene Zeilenanzahl
+    int useFastMode = 0;    // Falls möglich, direkt in Speicher schreiben (funktioniert nicht 100%)
 
     // Fast oder normaler Modus
-    if (x == 0 && w == deviceinfo.width) {
+    if (x == 0 && w == deviceinfo.width && useFastMode) {
+        printf("FAST Mode\r\n");
+        lines = 32767 / w;
+
         while (offsetLines < h) {
-            printf("FAST\r\n");
             if (offsetLines + lines > h)
                 lines = h - offsetLines;
 
@@ -245,7 +248,6 @@ void it8951LoadImage(uint8_t *buffer, int x, int y, int w, int h) {
         }
     } else {
         while (offsetLines < h) {
-            printf("SLOW\r\n");
             if (offsetLines + lines > h)
                 lines = h - offsetLines;
 

@@ -18,7 +18,7 @@ Optionen:
 *   -f: Fill: gewählte Bildfläche im Speicher mit Farbe 0-255 füllen
 *   -l: Lade Input auf IT8951 Speicher
 *   -i: Displayinformationen ausgeben
-*   -s: IT8951 Speicher zeichnen
+*   -s: IT8951 Speicherinhalt auf Display zeichnen
 *   x y w h: Bildposition und Frösse
 *   Input via Pipe, 8Bit-Graustufen Bild
 
@@ -32,7 +32,7 @@ Hilfe / Argumentübersicht
 ./it8951 -h
 ```
 
-Farbfläche in den Speicher des IT8951 übertragen (Farbe 255 -> Weiss, Startpunkte x0,y0, Breite und Höhe 50px):
+Farbfläche direkt setzen und anzeigen (Farbe 255 -> Weiss, Startpunkte x0,y0, Breite und Höhe 50px):
 ```
 ./it8951 -f 255 -s /dev/sg0 0 0 50 50
 ```
@@ -70,6 +70,7 @@ Der Aufbau besteht aus einem IT8951 gesteuerten Display und einem mittels USB (O
 ## TODO
 * Register schreiben / auslesen
 * Image Buffer Index implementieren
+* Fast-Mode und/oder Fill-Mode Bug?
 
 ## Dokumente
 * Herstellerdokumentation  [> Link](https://www.waveshare.com/w/upload/c/c9/IT8951_USB_ProgrammingGuide_v.0.4_20161114.pdf)
